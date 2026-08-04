@@ -46,10 +46,11 @@ process DIFFDOCK_BATCH {
 
     # rewrite protein_path column to point at the receptor staged in this task dir
     micromamba run -n diffdock python - <<'PY' > noisy.log 2>&1
-import csv
+import csv, os
 rows = list(csv.DictReader(open("${batch_csv}")))
+abs_receptor = os.path.abspath("${receptor}")
 for r in rows:
-    r["protein_path"] = "${receptor}"
+    r["protein_path"] = abs_receptor
 with open("batch_local.csv", "w", newline="") as f:
     w = csv.DictWriter(f, fieldnames=["complex_name","protein_path","ligand_description","protein_sequence"])
     w.writeheader()
