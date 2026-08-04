@@ -21,7 +21,7 @@ process DIFFDOCK_BATCH {
 
     output:
     path "summary_${batch_csv.baseName}.csv", emit: summary
-    path 'poses_named/*.sdf', emit: poses_named, optional: true
+    path "poses_${batch_csv.baseName}", emit: poses_named
 
     script:
     """
@@ -59,7 +59,9 @@ PY
 
     # extract rank1 confidence per complex, copy pose under a globally-unique name,
     # and write a per-shard summary csv. Tolerates missing/failed complexes.
-    mkdir -p poses_named
+    # The output dir always exists (mkdir -p) even if zero poses succeeded,
+    # so this output declaration never needs `optional: true`.
+    mkdir -p "poses_${batch_csv.baseName}"
     micromamba run -n diffdock python - <<PY
 import csv, glob, os, re, shutil
 
@@ -80,7 +82,7 @@ for r in rows:
             m = re.search(r"confidence([\\-0-9.]+)", os.path.basename(pose))
             if m:
                 conf = m.group(1)
-            dest = os.path.join("poses_named", name + ".sdf")
+            dest = os.path.join("poses_${batch_csv.baseName}", name + ".sdf")
             shutil.copy(pose, dest)
             pose_rel = dest
             status = "ok"
