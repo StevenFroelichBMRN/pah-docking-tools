@@ -1,0 +1,6 @@
+safe_id,smiles
+CHEMBL18,CCOc1ccc2nc(S(N)(=O)=O)sc2c1
+CID10850461,Cc1cc(=O)[nH]c2c1NC(=O)c1cccnc1N2C1CC1
+CHEMBL2104575,O=c1cc(CN2CCOCC2)c2ccc(O)cc2o1
+CID5091716,O=C(Nc1ccccc1C(=O)[O-])c1ccccc1
+CID4616,O=C1Nc2ccc(Cl)cc2C(c2ccccc2)=NC1O
