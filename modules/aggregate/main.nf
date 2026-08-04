@@ -12,8 +12,13 @@ params.top_n_poses    = 50
 params.results_subdir = 'results'
 
 process AGGREGATE {
+    // GITHUB_TOKEN is NOT declared via Nextflow's `secret` directive: that
+    // requires the compute env's AWS execution role to have
+    // secretsmanager:CreateSecret, which this account's TowerForge role
+    // does not grant. Instead the token is passed as a plain process env
+    // var set only for this specific launch (via launch-time configText,
+    // never committed to the repo) -- see launch calls in the driving code.
     container 'python:3.11-slim'
-    secret 'GITHUB_TOKEN'
     cpus 2
     memory '4 GB'
     publishDir params.outdir, mode: 'copy'
