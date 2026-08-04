@@ -10,16 +10,22 @@ nextflow.enable.dsl=2
 // params.samples       : DiffDock samples_per_complex (default 8)
 // params.outdir        : publish directory
 
-params.batches_dir = "${projectDir}/assets/batches"
-params.receptor    = "${projectDir}/assets/receptor.pdb"
-params.samples     = 8
-params.outdir      = "${launchDir}/results/diffdock_batch"
+// batch_subdir/receptor_name are simple relative names so a param override
+// (e.g. via params-text on Seqera) still resolves against projectDir instead
+// of the launch/work directory.
+params.batch_subdir  = 'batches'
+params.receptor_name = 'receptor.pdb'
+params.samples       = 8
+params.outdir        = "${launchDir}/results/diffdock_batch"
+
+params.batches_dir = "${projectDir}/assets/${params.batch_subdir}"
+params.receptor    = "${projectDir}/assets/${params.receptor_name}"
 
 include { DIFFDOCK_BATCH } from './modules/diffdock_batch/main.nf'
 
 workflow {
     receptor_ch = file(params.receptor)
-    batches_ch  = Channel.fromPath("${params.batches_dir}/batch_*.csv")
+    batches_ch  = Channel.fromPath("${params.batches_dir}/batch_*.csv", checkIfExists: true)
                          .map { csv -> tuple(csv, receptor_ch) }
 
     DIFFDOCK_BATCH(batches_ch)
