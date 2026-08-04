@@ -119,6 +119,17 @@ with open(f"summary_{shard}.csv") as f:
     print(f.read(), end="")
 print(f"===SHARD_CSV_END:{shard}===")
 
+# if everything in this shard failed, dump the tail of the redirected
+# DiffDock log so the driving session can diagnose without S3 access
+n_ok = sum(1 for r in out_rows if r["status"] == "ok")
+if n_ok == 0 and os.path.isfile("noisy.log"):
+    with open("noisy.log") as f:
+        lines = f.readlines()
+    tail = "".join(lines[-60:])
+    print(f"===NOISY_TAIL_START:{shard}===")
+    print(tail)
+    print(f"===NOISY_TAIL_END:{shard}===")
+
 if ${params.dump_poses_b64 ? 'True' : 'False'}:
     for r in out_rows:
         if r["status"] == "ok" and r["pose_path"]:
