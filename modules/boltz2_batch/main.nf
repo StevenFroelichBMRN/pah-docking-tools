@@ -31,6 +31,13 @@ params.diffusion_samples = 1
 process BOLTZ2_BATCH {
     tag "${batch_csv.baseName}"
     container 'pytorch/pytorch:2.4.1-cuda12.1-cudnn9-runtime'
+    // Default Docker/AWS Batch shm is 64 MB, which crashes Boltz's PyTorch
+    // DataLoader workers with "Bus error ... out of shared memory" on every
+    // compound (observed on the first launch attempt, 20/20 failed
+    // identically). AWS Batch's shm-size container option wants a plain
+    // integer of bytes with NO '=' (nextflow-io/nextflow#5190/#5176) --
+    // 8 GB here comfortably covers the single-worker single-sample load.
+    containerOptions '--shm-size 8000000000'
     accelerator 1
     cpus 8
     memory '30 GB'
@@ -90,6 +97,7 @@ PY
         --output_format pdb \\
         --recycling_steps ${params.recycling_steps} \\
         --diffusion_samples ${params.diffusion_samples} \\
+        --num_workers 0 \\
         > noisy.log 2>&1 || true
 
     mkdir -p pdb_out
