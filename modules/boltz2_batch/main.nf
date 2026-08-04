@@ -11,16 +11,15 @@ nextflow.enable.dsl=2
 // active-site landmark residues (His285, His290, Glu330) WITHIN the
 // receptor sequence as submitted to Boltz -- used to recompute the
 // ligand-centroid-to-active-site-landmark distance directly in each
-// Boltz-predicted structure's own coordinate frame (no cross-model
-// superposition needed, matching how the DiffDock-side distance was
-// computed against the original crystal frame).
+// Boltz-predicted structure's own coordinate frame.
 //
-// Retrieval: same console-log marker strategy validated for DIFFDOCK_BATCH
-// -- ===SHARD_CSV_START/END=== for the tabular summary, plus a base64 PDB
-// dump per compound (small: single receptor chain + one small-molecule
-// ligand) wrapped in ===POSE_START/END=== markers, since this shard is
-// only 5 compounds and S3/AWS access from the driving session is not
-// guaranteed available.
+// Retrieval: results are emitted as REAL Nextflow file outputs (a
+// per-shard summary_<shard>.csv plus a pdb_out/ directory of co-folded
+// structures), NOT via the console-log marker strategy used for
+// DIFFDOCK_BATCH -- Seqera's live console log keeps only a bounded tail
+// window, which silently drops earlier shards' marker blocks once later
+// shards print. Downstream BOLTZ2_AGGREGATE reads these as proper
+// Nextflow channel inputs and pushes the joined table back to GitHub.
 
 params.his285_pos = 259
 params.his290_pos = 264
@@ -31,25 +30,24 @@ params.diffusion_samples = 1
 process BOLTZ2_BATCH {
     tag "${batch_csv.baseName}"
     container 'pytorch/pytorch:2.4.1-cuda12.1-cudnn9-runtime'
-    // Default Docker/AWS Batch shm is 64 MB, which crashes Boltz's PyTorch
-    // DataLoader workers with "Bus error ... out of shared memory" on every
-    // compound (observed on the first launch attempt, 20/20 failed
-    // identically). AWS Batch's shm-size container option wants a plain
-    // integer of bytes with NO '=' (nextflow-io/nextflow#5190/#5176) --
-    // 8 GB here comfortably covers the single-worker single-sample load.
+    // Default Docker/AWS Batch shm is 64 MB, which crashed Boltz's PyTorch
+    // DataLoader workers with "Bus error ... out of shared memory" on the
+    // first launch attempt (20/20 failed identically). AWS Batch's
+    // shm-size container option wants a plain integer of bytes with NO
+    // '=' (nextflow-io/nextflow#5190/#5176).
     containerOptions '--shm-size 8000000000'
     accelerator 1
     cpus 8
     memory '30 GB'
     errorStrategy 'ignore'
     maxRetries 0
-    debug true
 
     input:
     tuple path(batch_csv), path(receptor_fasta)
 
     output:
-    stdout emit: log_out
+    path "summary_${batch_csv.baseName}.csv", emit: summary
+    path 'pdb_out/*.pdb', emit: pdbs, optional: true
 
     script:
     """
@@ -60,9 +58,8 @@ process BOLTZ2_BATCH {
     pip install --quiet --no-cache-dir boltz > pip.log 2>&1 || (cat pip.log && exit 1)
 
     python3 - <<'PY' > prep.log 2>&1
-import csv, os, textwrap
+import csv, os
 
-# receptor sequence (single FASTA record)
 with open("${receptor_fasta}") as f:
     lines = [l.strip() for l in f if not l.startswith(">")]
 receptor_seq = "".join(lines)
@@ -89,7 +86,6 @@ properties:
 
 print(f"wrote {len(rows)} yaml inputs")
 PY
-    cat prep.log
 
     boltz predict yamls/ \\
         --use_msa_server \\
@@ -102,7 +98,7 @@ PY
 
     mkdir -p pdb_out
     python3 - <<PY
-import base64, csv, glob, json, math, os
+import csv, glob, json, math, os
 
 his285_pos = ${params.his285_pos}
 his290_pos = ${params.his290_pos}
@@ -111,7 +107,6 @@ glu330_pos = ${params.glu330_pos}
 rows = list(csv.DictReader(open("${batch_csv}")))
 
 def parse_pdb_atoms(path):
-    \"\"\"Return dict: chain_id -> list of (resSeq:int, atom_name:str, x,y,z)\"\"\"
     by_chain = {}
     with open(path) as f:
         for line in f:
@@ -148,7 +143,7 @@ for r in rows:
             ptm = cj.get("ptm", "")
             plddt = cj.get("complex_plddt", "")
             conf_score = cj.get("confidence_score", "")
-        except Exception as e:
+        except Exception:
             pass
 
     if aff_json:
@@ -156,7 +151,7 @@ for r in rows:
             aj = json.load(open(aff_json[0]))
             affinity_pred_value = aj.get("affinity_pred_value", "")
             affinity_prob_binary = aj.get("affinity_probability_binary", "")
-        except Exception as e:
+        except Exception:
             pass
 
     if pdb_file:
@@ -167,7 +162,6 @@ for r in rows:
         pdb_rel = dest
 
         by_chain = parse_pdb_atoms(pdb_file[0])
-        # protein chain = 'A' (largest atom count / matches receptor); ligand = everything else
         protein_atoms = by_chain.get("A", [])
         ligand_atoms = []
         for cid, atoms in by_chain.items():
@@ -213,30 +207,14 @@ with open(f"summary_{shard}.csv", "w", newline="") as f:
     w = csv.DictWriter(f, fieldnames=fieldnames)
     w.writeheader()
     w.writerows(out_rows)
-
-print(f"===SHARD_CSV_START:{shard}===")
-with open(f"summary_{shard}.csv") as f:
-    print(f.read(), end="")
-print(f"===SHARD_CSV_END:{shard}===")
-
-n_ok = sum(1 for r in out_rows if r["status"] == "ok")
-if n_ok == 0:
-    for logname in ("noisy.log", "pip.log"):
-        if os.path.isfile(logname):
-            with open(logname) as f:
-                lines = f.readlines()
-            tail = "".join(lines[-80:])
-            print(f"===NOISY_TAIL_START:{shard}:{logname}===")
-            print(tail)
-            print(f"===NOISY_TAIL_END:{shard}:{logname}===")
-
-for r in out_rows:
-    if r["status"] == "ok" and r["pdb_path"]:
-        with open(r["pdb_path"], "rb") as pf:
-            b64 = base64.b64encode(pf.read()).decode()
-        print(f"===POSE_START:{r['compound_safe_id']}===")
-        print(b64)
-        print(f"===POSE_END:{r['compound_safe_id']}===")
 PY
+
+    # ensure the optional pdb glob output has at least a placeholder so
+    # Nextflow doesn't error on a totally empty glob when every compound
+    # in this shard failed (should not happen post shm-size fix, but
+    # keep the shard robust to zero-success without aborting the run)
+    if [ -z "\$(ls -A pdb_out 2>/dev/null)" ]; then
+        touch pdb_out/.empty
+    fi
     """
 }
