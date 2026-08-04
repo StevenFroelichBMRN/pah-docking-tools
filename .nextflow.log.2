@@ -1,0 +1,69 @@
+Aug-04 10:59:55.243 [main] DEBUG nextflow.cli.Launcher - Setting HTTP proxy: ProxyConfig[protocol=http; host=localhost; port=49287]
+Aug-04 10:59:55.261 [main] DEBUG nextflow.cli.Launcher - Setting HTTPS proxy: ProxyConfig[protocol=https; host=localhost; port=49287]
+Aug-04 10:59:55.262 [main] DEBUG nextflow.cli.Launcher - Setting FTP proxy: ProxyConfig[protocol=ftp; host=localhost; port=49287]
+Aug-04 10:59:55.262 [main] DEBUG nextflow.cli.Launcher - Setting http proxy: ProxyConfig[protocol=http; host=localhost; port=49287]
+Aug-04 10:59:55.262 [main] DEBUG nextflow.cli.Launcher - Setting https proxy: ProxyConfig[protocol=https; host=localhost; port=49287]
+Aug-04 10:59:55.262 [main] DEBUG nextflow.cli.Launcher - Setting ftp proxy: ProxyConfig[protocol=ftp; host=localhost; port=49287]
+Aug-04 10:59:55.263 [main] DEBUG nextflow.cli.Launcher - $> nextflow run run_diffdock_batch.nf --batch_subdir batches_test -preview
+Aug-04 10:59:55.308 [main] DEBUG nextflow.cli.CmdRun - N E X T F L O W  ~  version 26.04.6
+Aug-04 10:59:55.685 [main] DEBUG nextflow.plugin.PluginsFacade - Setting up plugin manager > mode=prod; embedded=false; plugins-dir=/Users/st897041/.claude-science/orgs/37c2a063-508d-4e09-8c5a-f86452fbc2dc/workspaces/1f5324c0-75d3-4edc-9a17-ab8e1bf225d5/.nextflow_home/plugins; core-plugins: nf-amazon@3.9.2,nf-azure@1.22.6,nf-cloudcache@0.6.0,nf-codecommit@0.5.3,nf-console@1.3.0,nf-google@1.27.3,nf-k8s@1.5.4,nf-seqera@0.21.1,nf-tower@1.28.2,nf-wave@1.21.0
+Aug-04 10:59:55.718 [main] INFO  o.pf4j.DefaultPluginStatusProvider - Enabled plugins: []
+Aug-04 10:59:55.719 [main] INFO  o.pf4j.DefaultPluginStatusProvider - Disabled plugins: []
+Aug-04 10:59:55.721 [main] INFO  org.pf4j.DefaultPluginManager - PF4J version 3.14.1 in 'deployment' mode
+Aug-04 10:59:55.733 [main] DEBUG nextflow.util.RetryConfig - Missing nextflow session - using default retry config
+Aug-04 10:59:55.877 [main] DEBUG nextflow.plugin.PluginUpdater - Using plugin repository: HttpPluginRepository [registry]; url=https://registry.nextflow.io/api
+Aug-04 10:59:55.891 [main] INFO  org.pf4j.AbstractPluginManager - No plugins
+Aug-04 10:59:55.945 [main] DEBUG nextflow.config.ConfigBuilder - Found config local: /Users/st897041/.claude-science/orgs/37c2a063-508d-4e09-8c5a-f86452fbc2dc/workspaces/1f5324c0-75d3-4edc-9a17-ab8e1bf225d5/pah-docking-tools/nextflow.config
+Aug-04 10:59:55.947 [main] DEBUG nextflow.config.ConfigBuilder - Parsing config file: /Users/st897041/.claude-science/orgs/37c2a063-508d-4e09-8c5a-f86452fbc2dc/workspaces/1f5324c0-75d3-4edc-9a17-ab8e1bf225d5/pah-docking-tools/nextflow.config
+Aug-04 10:59:55.949 [main] DEBUG nextflow.config.ConfigParserFactory - Using config parser v2
+Aug-04 10:59:55.978 [main] DEBUG nextflow.config.ConfigBuilder - Applying config profile: `standard`
+Aug-04 10:59:56.436 [main] DEBUG nextflow.plugin.PluginsFacade - Plugins default=[]
+Aug-04 10:59:56.436 [main] DEBUG nextflow.plugin.PluginsFacade - Plugins resolved requirement=[nf-wave@1.21.0]
+Aug-04 10:59:57.073 [main] DEBUG io.seqera.http.HxClient - HTTP request retry attempt 1: Operation not permitted
+Aug-04 10:59:57.730 [main] DEBUG io.seqera.http.HxClient - HTTP request retry attempt 2: Operation not permitted
+Aug-04 10:59:59.388 [main] DEBUG io.seqera.http.HxClient - HTTP request retry attempt 3: Operation not permitted
+Aug-04 11:00:02.668 [main] DEBUG io.seqera.http.HxClient - HTTP request retry attempt 4: Operation not permitted
+Aug-04 11:00:02.673 [main] DEBUG io.seqera.http.HxClient - HTTP request retry attempt 5: Operation not permitted
+Aug-04 11:00:02.675 [main] WARN  n.plugin.HttpPluginRepository - Failed to prefetch plugin metadata from https://registry.nextflow.io/api/ - cause: Unable to connect to https://registry.nextflow.io/api/v1/plugins/dependencies?plugins=nf-wave%401.21.0&nextflowVersion=26.04.6 - cause: Operation not permitted
+Aug-04 11:00:02.676 [main] DEBUG nextflow.plugin.PluginUpdater - Installing plugin nf-wave version: 1.21.0
+Aug-04 11:00:02.704 [main] INFO  nextflow.plugin.PluginUpdater - Downloading plugin nf-wave@1.21.0
+Aug-04 11:00:02.738 [main] INFO  org.pf4j.update.UpdateManager - Plugin with id nf-wave does not exist in any repository
+Aug-04 11:00:02.748 [main] ERROR nextflow.cli.Launcher - @unknown
+org.pf4j.PluginRuntimeException: Plugin with id nf-wave not found in any repository
+	at org.pf4j.update.UpdateManager.findReleaseForPlugin(UpdateManager.java:322)
+	at org.pf4j.update.UpdateManager.downloadPlugin(UpdateManager.java:268)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:77)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:569)
+	at org.codehaus.groovy.reflection.CachedMethod.invoke(CachedMethod.java:343)
+	at groovy.lang.MetaMethod.doMethodInvoke(MetaMethod.java:328)
+	at groovy.lang.MetaClassImpl.doInvokeMethod(MetaClassImpl.java:1341)
+	at groovy.lang.MetaClassImpl.invokeMethod(MetaClassImpl.java:1096)
+	at groovy.lang.MetaClassImpl.invokeMethod(MetaClassImpl.java:1009)
+	at org.codehaus.groovy.runtime.InvokerHelper.invokePogoMethod(InvokerHelper.java:645)
+	at org.codehaus.groovy.runtime.InvokerHelper.invokeMethod(InvokerHelper.java:628)
+	at org.codehaus.groovy.runtime.InvokerHelper.invokeMethodSafe(InvokerHelper.java:82)
+	at nextflow.plugin.PluginUpdater$_safeDownloadPlugin_lambda3.doCall(PluginUpdater.groovy:284)
+	at dev.failsafe.Functions.lambda$toCtxSupplier$11(Functions.java:243)
+	at dev.failsafe.Functions.lambda$get$0(Functions.java:46)
+	at dev.failsafe.internal.RetryPolicyExecutor.lambda$apply$0(RetryPolicyExecutor.java:74)
+	at dev.failsafe.SyncExecutionImpl.executeSync(SyncExecutionImpl.java:187)
+	at dev.failsafe.FailsafeExecutor.call(FailsafeExecutor.java:376)
+	at dev.failsafe.FailsafeExecutor.get(FailsafeExecutor.java:112)
+	at nextflow.plugin.PluginUpdater.safeDownloadPlugin(PluginUpdater.groovy:286)
+	at nextflow.plugin.PluginUpdater.download0(PluginUpdater.groovy:265)
+	at nextflow.plugin.PluginUpdater.access$0(PluginUpdater.groovy)
+	at nextflow.plugin.PluginUpdater$_safeDownload_closure4.doCall(PluginUpdater.groovy:347)
+	at nextflow.plugin.PluginUpdater$_safeDownload_closure4.call(PluginUpdater.groovy)
+	at nextflow.file.FileMutex.lock(FileMutex.groovy:106)
+	at nextflow.plugin.PluginUpdater.safeDownload(PluginUpdater.groovy:347)
+	at nextflow.plugin.PluginUpdater.load0(PluginUpdater.groovy:396)
+	at nextflow.plugin.PluginUpdater.installPlugin(PluginUpdater.groovy:249)
+	at nextflow.plugin.PluginUpdater.prepareAndStart(PluginUpdater.groovy:195)
+	at nextflow.plugin.PluginsFacade.start(PluginsFacade.groovy:420)
+	at nextflow.plugin.PluginsFacade.load(PluginsFacade.groovy:308)
+	at nextflow.plugin.Plugins.load(Plugins.groovy:49)
+	at nextflow.cli.CmdRun.run(CmdRun.groovy:375)
+	at nextflow.cli.Launcher.run(Launcher.groovy:526)
+	at nextflow.cli.Launcher.main(Launcher.groovy:686)

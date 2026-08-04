@@ -21,7 +21,7 @@ process DIFFDOCK_BATCH {
 
     output:
     path "summary_${batch_csv.baseName}.csv", emit: summary
-    path "poses_${batch_csv.baseName}", emit: poses_named
+    path 'poses_out/*.sdf', emit: poses_named, optional: true
 
     script:
     """
