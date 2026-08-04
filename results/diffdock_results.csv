@@ -1,0 +1,2 @@
+compound_id,smiles,category,diffdock_confidence,status,pose_file
+BDB_50156156,CC(O)C(O)C1CNc2c(nc(N)[nH]c2=O)N1,PAH_bioactivity,-1.23,ok,poses_out/BDB_50156156.sdf
