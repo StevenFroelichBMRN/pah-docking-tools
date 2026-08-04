@@ -18,6 +18,11 @@ process AGGREGATE {
     // does not grant. Instead the token is passed as a plain process env
     // var set only for this specific launch (via launch-time configText,
     // never committed to the repo) -- see launch calls in the driving code.
+    //
+    // Results are pushed back via the GitHub REST "contents" API using
+    // only the Python standard library (urllib) -- no `git`/apt-get
+    // install needed inside the container, which is what made the
+    // slim-image git-based push flaky.
     container 'python:3.11-slim'
     cpus 2
     memory '4 GB'
@@ -36,10 +41,8 @@ process AGGREGATE {
     script:
     """
     set -e
-    apt-get update -qq && apt-get install -y -qq git tar gzip > /dev/null
-
     python3 - <<'PY'
-import csv, glob, os, tarfile
+import base64, csv, glob, json, os, tarfile, urllib.request, urllib.error
 
 # 1. load compound mapping (safe_id -> compound_id, smiles, category, ...)
 mapping = {}
@@ -98,24 +101,61 @@ with tarfile.open("top_poses.tar.gz", "w:gz") as tar:
             tar.add(pf, arcname=f"{r['compound_id']}.sdf")
 
 print(f"tarred {len(top)} top poses")
-PY
 
-    # push results + top pose tarball back to the pipeline's own repo
-    git clone -q "https://x-access-token:\${GITHUB_TOKEN}@github.com/${params.github_repo}.git" repo > push_log.txt 2>&1 || true
-    if [ -d repo ]; then
-        mkdir -p "repo/${params.results_subdir}"
-        cp diffdock_results.csv "repo/${params.results_subdir}/"
-        cp top_poses.tar.gz "repo/${params.results_subdir}/"
-        cd repo
-        git config user.email "diffdock-bot@example.com"
-        git config user.name "DiffDock Campaign Bot"
-        git add "${params.results_subdir}"
-        git commit -m "Docking campaign results (\$(date -u +%FT%TZ))" >> ../push_log.txt 2>&1 || echo "nothing to commit" >> ../push_log.txt
-        git push origin main >> ../push_log.txt 2>&1 || echo "PUSH FAILED" >> ../push_log.txt
-        cd ..
-    else
-        echo "CLONE FAILED" >> push_log.txt
-    fi
-    cat push_log.txt
+# 5. push diffdock_results.csv + top_poses.tar.gz back to the pipeline's
+#    own GitHub repo via the Contents API (stdlib urllib only).
+token = os.environ.get("GITHUB_TOKEN", "")
+repo = "${params.github_repo}"
+subdir = "${params.results_subdir}"
+log_lines = []
+
+def gh_put_file(path_in_repo, local_path):
+    api = f"https://api.github.com/repos/{repo}/contents/{path_in_repo}"
+    req = urllib.request.Request(api, headers={
+        "Authorization": f"token {token}",
+        "Accept": "application/vnd.github+json",
+    })
+    sha = None
+    try:
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            sha = json.load(resp).get("sha")
+    except urllib.error.HTTPError as e:
+        if e.code != 404:
+            log_lines.append(f"GET {path_in_repo} failed: {e.code} {e.read()[:300]}")
+
+    with open(local_path, "rb") as f:
+        content_b64 = base64.b64encode(f.read()).decode()
+
+    payload = {
+        "message": f"Docking campaign results: {path_in_repo}",
+        "content": content_b64,
+        "branch": "main",
+    }
+    if sha:
+        payload["sha"] = sha
+
+    body = json.dumps(payload).encode()
+    put_req = urllib.request.Request(api, data=body, method="PUT", headers={
+        "Authorization": f"token {token}",
+        "Accept": "application/vnd.github+json",
+        "Content-Type": "application/json",
+    })
+    try:
+        with urllib.request.urlopen(put_req, timeout=60) as resp:
+            resp.read()
+        log_lines.append(f"PUSHED {path_in_repo}")
+    except urllib.error.HTTPError as e:
+        log_lines.append(f"PUSH FAILED {path_in_repo}: {e.code} {e.read()[:500]}")
+
+if not token:
+    log_lines.append("NO GITHUB_TOKEN SET -- skipping push")
+else:
+    gh_put_file(f"{subdir}/diffdock_results.csv", "diffdock_results.csv")
+    gh_put_file(f"{subdir}/top_poses.tar.gz", "top_poses.tar.gz")
+
+with open("push_log.txt", "w") as f:
+    f.write("\\n".join(log_lines) + "\\n")
+print("\\n".join(log_lines))
+PY
     """
 }
