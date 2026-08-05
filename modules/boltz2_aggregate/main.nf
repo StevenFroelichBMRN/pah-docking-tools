@@ -23,7 +23,17 @@ process BOLTZ2_AGGREGATE {
     // `env {}` scope is ALSO present in the merged config
     // (nextflow-io/nextflow#1187) -- the driving code's configText must
     // include both scopes.
-    container 'python:3.11-slim'
+    //
+    // Container: 'python:3.11-slim' lacks `ps`, and on this Fusion/AWS
+    // Batch setup Fusion polls task metrics via `ps` *during* execution --
+    // installing procps mid-script (apt-get) was too late and the task was
+    // still marked FAILED by Nextflow even though the Python logic itself
+    // exited 0 ("Command 'ps' required by nextflow to collect task metrics
+    // cannot be found" -- nextflow-io/nextflow#3080/#1289). The
+    // pytorch/pytorch image used for BOLTZ2_BATCH is Ubuntu/NVIDIA-base and
+    // already ships procps (that process completed cleanly), so it's
+    // reused here purely as a CPU-only container to sidestep the issue.
+    container 'pytorch/pytorch:2.4.1-cuda12.1-cudnn9-runtime'
     cpus 2
     memory '4 GB'
     publishDir params.outdir, mode: 'copy'
@@ -43,12 +53,6 @@ process BOLTZ2_AGGREGATE {
     script:
     """
     set -e
-    # python:3.11-slim lacks procps; Nextflow's own task-metrics collector
-    # then reports "Command 'ps' required by nextflow ... cannot be found"
-    # and (on this Fusion/AWS Batch combination) the task is marked FAILED
-    # even though the actual script logic succeeds -- install procps first.
-    (apt-get update -qq && apt-get install -qq -y procps > /dev/null) 2>&1 | tail -5 || true
-
     ls -la > diag.txt
 
     python3 - <<'PY' 2>&1 | tee -a diag.txt
