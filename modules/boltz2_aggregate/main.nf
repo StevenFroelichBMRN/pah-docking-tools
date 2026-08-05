@@ -16,7 +16,13 @@ params.results_subdir = 'results'
 process BOLTZ2_AGGREGATE {
     // GITHUB_TOKEN passed as a plain process env var set only for this
     // specific launch (via launch-time configText), never committed to
-    // the repo -- see the launch call in the driving code.
+    // the repo -- see the launch call in the driving code. IMPORTANT: a
+    // `process { withName: 'X' { env.GITHUB_TOKEN = ... } }` configText
+    // block alone does NOT reliably set the var -- Nextflow silently drops
+    // a withName-scoped `env` directive unless an (even empty) top-level
+    // `env {}` scope is ALSO present in the merged config
+    // (nextflow-io/nextflow#1187) -- the driving code's configText must
+    // include both scopes.
     container 'python:3.11-slim'
     cpus 2
     memory '4 GB'
@@ -37,6 +43,12 @@ process BOLTZ2_AGGREGATE {
     script:
     """
     set -e
+    # python:3.11-slim lacks procps; Nextflow's own task-metrics collector
+    # then reports "Command 'ps' required by nextflow ... cannot be found"
+    # and (on this Fusion/AWS Batch combination) the task is marked FAILED
+    # even though the actual script logic succeeds -- install procps first.
+    (apt-get update -qq && apt-get install -qq -y procps > /dev/null) 2>&1 | tail -5 || true
+
     ls -la > diag.txt
 
     python3 - <<'PY' 2>&1 | tee -a diag.txt
