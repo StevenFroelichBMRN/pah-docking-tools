@@ -109,10 +109,19 @@ def main():
     n_total = len(joined)
     print(f"boltz2_ok={n_ok} total_attempted={n_total}")
 
-    with tarfile.open("boltz2_pdbs.tar.gz", "w:gz") as tar:
-        for pdb in glob.glob("*.pdb"):
+    # Nextflow/Fusion stages the collected BOLTZ2_BATCH.out.pdbs channel
+    # files into this task's work dir as SYMLINKS into the Fusion S3
+    # virtual filesystem (only resolvable from inside a task container).
+    # tarfile.add() does NOT dereference symlinks by default, so a naive
+    # tar here silently produces dangling-symlink archive members with
+    # zero real bytes once extracted anywhere else -- dereference=True
+    # copies the actual referenced file content into the tar instead.
+    pdb_files = glob.glob("*.pdb")
+    with tarfile.open("boltz2_pdbs.tar.gz", "w:gz", dereference=True) as tar:
+        for pdb in pdb_files:
+            real_size = os.stat(pdb).st_size  # stat() follows symlinks -> real remote size
             tar.add(pdb, arcname=os.path.basename(pdb))
-    print("tar contents:", glob.glob("*.pdb"))
+    print("tar contents (with real sizes):", [(p, os.stat(p).st_size) for p in pdb_files])
 
     token = os.environ.get("GITHUB_TOKEN", "")
     repo = "${params.github_repo}"
