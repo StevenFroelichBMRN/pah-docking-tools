@@ -1,0 +1,2 @@
+compound_id,category,diffdock_confidence,confidence_rank,qed,qed_rank,consensus_score,mw,logp,lipinski_violations,pose_integrity_ok,smiles,local_pose_file,safe_id
+CID135398579,approved_drug_baseline,-0.24,64,0.5101767236496731,647,0.3855748373101952,237.219,-1.1999999999999993,0,True,C[C@@H](C(=O)C1=NC2=C(NC1)N=C(NC2=O)N)O,,CID135398579
